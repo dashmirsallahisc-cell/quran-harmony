@@ -7,6 +7,9 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:capacitor": "vite build --config vite.config.capacitor.ts && node scripts/fix-capacitor-html.mjs",
+    "cap:sync": "npm run build:capacitor && npx cap sync android",
+    "cap:open": "npm run cap:sync && npx cap open android",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."

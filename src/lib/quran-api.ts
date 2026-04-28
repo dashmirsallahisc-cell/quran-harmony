@@ -80,7 +80,7 @@ export async function fetchSurahArabic(surahNumber: number): Promise<SurahDetail
 
 /** Build a full-surah MP3 URL (one file per surah) */
 export function fullSurahAudioUrl(reciterIdentifier: string, surahNumber: number, bitrate = 128) {
-  // strip ar. prefix; CDN folder is the identifier without prefix
-  const folder = reciterIdentifier.replace(/^ar\./, "");
+  // The full-surah CDN expects the complete edition id, e.g. `ar.alafasy`.
+  const folder = reciterIdentifier;
   return `${CDN}-surah/${bitrate}/${folder}/${surahNumber}.mp3`;
 }

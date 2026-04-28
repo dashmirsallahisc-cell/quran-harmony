@@ -5,8 +5,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import {
   RouterProvider,
+  createHashHistory,
   createRouter,
-  createMemoryHistory,
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
@@ -14,7 +14,7 @@ import "./styles.css";
 
 const router = createRouter({
   routeTree,
-  history: createMemoryHistory({ initialEntries: ["/"] }),
+  history: createHashHistory(),
   defaultPreload: "intent",
   scrollRestoration: true,
   context: {},

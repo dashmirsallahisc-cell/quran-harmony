@@ -1,5 +1,7 @@
 // Pas build, riemërto capacitor.html -> index.html që Capacitor ta gjejë.
-import { renameSync, existsSync } from "node:fs";
+// Pastaj sigurohu që asset-et janë relative, sepse Android WebView nuk i hap
+// rrugët absolute si `/assets/...` kur app-i lexohet nga filesystem-i lokal.
+import { renameSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const dist = path.resolve(process.cwd(), "dist");
@@ -15,3 +17,8 @@ if (existsSync(src)) {
   console.error("[capacitor] ERROR: dist/capacitor.html not found after build!");
   process.exit(1);
 }
+
+const html = readFileSync(dst, "utf8")
+  .replace(/(src|href)="\/assets\//g, '$1="./assets/');
+writeFileSync(dst, html);
+console.log("[capacitor] Normalized asset paths for Android WebView");

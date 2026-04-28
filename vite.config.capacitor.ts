@@ -13,7 +13,9 @@ export default defineConfig({
   // vetëm background-in bosh pa JavaScript/CSS.
   base: "./",
   plugins: [
-    TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
+    // Android WebView/file:// është më i qëndrueshëm kur route chunks nuk
+    // ngarkohen me dynamic import. Një bundle i vetëm shmang ekranin bosh.
+    TanStackRouterVite({ target: "react", autoCodeSplitting: false }),
     react(),
     tailwindcss(),
     tsconfigPaths(),

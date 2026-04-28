@@ -8,6 +8,10 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "node:path";
 
 export default defineConfig({
+  // Capacitor/Android duhet t'i lexojë asset-et relativisht nga `index.html`.
+  // Pa këtë, dist/index.html del me `/assets/...` dhe WebView mund të hapë
+  // vetëm background-in bosh pa JavaScript/CSS.
+  base: "./",
   plugins: [
     TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
     react(),

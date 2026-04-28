@@ -56,7 +56,7 @@ export async function downloadSurah(
       const buf = new Uint8Array(await res.arrayBuffer());
       chunks.push(buf);
     }
-    const blob = new Blob(chunks);
+    const blob = new Blob(chunks as BlobPart[]);
     const base64 = await blobToBase64(blob);
     const written = await Filesystem.writeFile({
       path: fileName,

@@ -9,8 +9,6 @@ import {
 } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
-import { SettingsProvider } from "./contexts/SettingsContext";
-import { PlayerProvider } from "./contexts/PlayerContext";
 import "./styles.css";
 
 const router = createRouter({
@@ -55,11 +53,7 @@ try {
   ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <SettingsProvider>
-          <PlayerProvider>
-            <RouterProvider router={router} />
-          </PlayerProvider>
-        </SettingsProvider>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </React.StrictMode>,
   );

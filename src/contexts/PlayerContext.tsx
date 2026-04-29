@@ -173,16 +173,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
   const updateMediaSession = (s: Surah) => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.metadata = new MediaMetadata({
+    const meta = {
       title: `${s.englishName} — ${s.name}`,
       artist: reciterName,
       album: "Quran Pro",
-      artwork: [
-        { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-        { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      ],
-    });
+      artwork: "/icon-512.png",
+    };
+    // Native (Capacitor) — punon kur telefoni është në qelës
+    setNativeMetadata(meta);
+    // Web fallback
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: meta.title,
+        artist: meta.artist,
+        album: meta.album,
+        artwork: [
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+        ],
+      });
+    }
   };
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;

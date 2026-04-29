@@ -195,11 +195,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   };
   useEffect(() => {
+    // Native handlers (Capacitor) — punojnë në lock screen
+    setNativeHandlers({
+      play: () => audioRef.current?.play(),
+      pause: () => audioRef.current?.pause(),
+      previousTrack: () => doPrev(),
+      nextTrack: () => doNext(),
+      seekTo: (sec) => { if (audioRef.current) audioRef.current.currentTime = sec; },
+    });
+    // Web fallback
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
     };
-
     setMediaAction("play", () => audioRef.current?.play());
     setMediaAction("pause", () => audioRef.current?.pause());
     setMediaAction("previoustrack", () => doPrev());

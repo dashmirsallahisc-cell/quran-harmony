@@ -5,6 +5,7 @@ import type { Surah } from "@/lib/quran-api";
 import { fullSurahAudioUrl } from "@/lib/quran-api";
 import { storageGet, storageSet } from "@/lib/storage";
 import { isDownloaded } from "@/lib/downloads";
+import { setNativeMetadata, setNativePlaybackState, setNativeHandlers } from "@/lib/native-media-session";
 
 interface HistoryEntry { surahNumber: number; reciterId: string; ts: number; }
 

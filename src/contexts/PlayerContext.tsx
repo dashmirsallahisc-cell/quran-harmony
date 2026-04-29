@@ -5,6 +5,7 @@ import type { Surah } from "@/lib/quran-api";
 import { fullSurahAudioUrl } from "@/lib/quran-api";
 import { storageGet, storageSet } from "@/lib/storage";
 import { isDownloaded } from "@/lib/downloads";
+import { setNativeMetadata, setNativePlaybackState, setNativeHandlers } from "@/lib/native-media-session";
 
 interface HistoryEntry { surahNumber: number; reciterId: string; ts: number; }
 
@@ -172,23 +173,41 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
   const updateMediaSession = (s: Surah) => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.metadata = new MediaMetadata({
+    const meta = {
       title: `${s.englishName} — ${s.name}`,
       artist: reciterName,
       album: "Quran Pro",
-      artwork: [
-        { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-        { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      ],
-    });
+      artwork: "/icon-512.png",
+    };
+    // Native (Capacitor) — punon kur telefoni është në qelës
+    setNativeMetadata(meta);
+    // Web fallback
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: meta.title,
+        artist: meta.artist,
+        album: meta.album,
+        artwork: [
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+        ],
+      });
+    }
   };
   useEffect(() => {
+    // Native handlers (Capacitor) — punojnë në lock screen
+    setNativeHandlers({
+      play: () => audioRef.current?.play(),
+      pause: () => audioRef.current?.pause(),
+      previousTrack: () => doPrev(),
+      nextTrack: () => doNext(),
+      seekTo: (sec) => { if (audioRef.current) audioRef.current.currentTime = sec; },
+    });
+    // Web fallback
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
     };
-
     setMediaAction("play", () => audioRef.current?.play());
     setMediaAction("pause", () => audioRef.current?.pause());
     setMediaAction("previoustrack", () => doPrev());
@@ -216,9 +235,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [currentTime, duration, speed]);
 
   useEffect(() => {
+    // Native (Capacitor) — sinkronizo state për notification në lock screen
+    setNativePlaybackState(isPlaying ? "playing" : "paused", currentTime, duration);
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-  }, [isPlaying]);
+  }, [isPlaying, currentTime, duration]);
 
   const value = useMemo<PlayerCtx>(() => ({
     surah, reciterId, reciterName, isPlaying, currentTime, duration, loading, autoplay, speed,

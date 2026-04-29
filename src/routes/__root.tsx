@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts, Link, Navigate } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import appCss from "../styles.css?url";
@@ -9,6 +9,10 @@ import { MiniPlayer } from "@/components/MiniPlayer";
 import { AdBanner } from "@/components/AdBanner";
 
 function NotFoundComponent() {
+  if (typeof window !== "undefined" && window.location.pathname === "/index") {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">

@@ -26,9 +26,8 @@ let pluginPromise: Promise<any> | null = null;
 async function loadPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!pluginPromise) {
-    pluginPromise = import(
-      /* @vite-ignore */ "@capacitor-community/media-session"
-    )
+    const pkg = "@capacitor-community/media-session";
+    pluginPromise = import(/* @vite-ignore */ pkg)
       .then((m: any) => m.MediaSession ?? m.default ?? m)
       .catch((e) => {
         console.warn("[media-session] plugin nuk u ngarkua:", e);

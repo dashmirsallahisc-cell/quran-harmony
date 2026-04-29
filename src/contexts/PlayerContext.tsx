@@ -185,11 +185,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.setActionHandler("play", () => audioRef.current?.play());
-    navigator.mediaSession.setActionHandler("pause", () => audioRef.current?.pause());
-    navigator.mediaSession.setActionHandler("previoustrack", () => doNext === doNext && doPrev());
-    navigator.mediaSession.setActionHandler("nexttrack", () => doNext());
-    navigator.mediaSession.setActionHandler("seekto", (e) => {
+    const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
+    };
+
+    setMediaAction("play", () => audioRef.current?.play());
+    setMediaAction("pause", () => audioRef.current?.pause());
+    setMediaAction("previoustrack", () => doPrev());
+    setMediaAction("nexttrack", () => doNext());
+    setMediaAction("seekto", (e) => {
       if (audioRef.current && e.seekTime != null) audioRef.current.currentTime = e.seekTime;
     });
     return () => {

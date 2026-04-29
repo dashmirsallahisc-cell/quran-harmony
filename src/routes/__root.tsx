@@ -1,6 +1,6 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts, Link, useNavigate } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
@@ -9,6 +9,12 @@ import { MiniPlayer } from "@/components/MiniPlayer";
 import { AdBanner } from "@/components/AdBanner";
 
 function NotFoundComponent() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.location.pathname === "/index") navigate({ to: "/", replace: true });
+  }, [navigate]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">

@@ -235,9 +235,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [currentTime, duration, speed]);
 
   useEffect(() => {
+    // Native (Capacitor) — sinkronizo state për notification në lock screen
+    setNativePlaybackState(isPlaying ? "playing" : "paused", currentTime, duration);
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-  }, [isPlaying]);
+  }, [isPlaying, currentTime, duration]);
 
   const value = useMemo<PlayerCtx>(() => ({
     surah, reciterId, reciterName, isPlaying, currentTime, duration, loading, autoplay, speed,

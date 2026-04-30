@@ -160,6 +160,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const setReciter = (id: string, name: string) => {
     setReciterId(id); setReciterName(name);
     storageSet("quranpro:reciter", { id, name });
+    // Nese ka nje surah qe po luan, riluaje me recituesin e ri
+    const a = audioRef.current;
+    const cur = stateRef.current.surah;
+    if (a && cur) {
+      const wasPlaying = !a.paused;
+      const newSrc = fullSurahAudioUrl(id, cur.number, 128);
+      a.src = newSrc;
+      a.playbackRate = speed;
+      if (wasPlaying) a.play().catch((e) => console.warn("reciter switch play failed", e));
+    }
   };
   const setAutoplayP = (v: boolean) => { setAutoplay(v); storageSet("quranpro:autoplay", v); };
   const setSpeedP = (v: number) => {

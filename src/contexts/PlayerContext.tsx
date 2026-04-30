@@ -110,11 +110,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current; if (!a) return;
     setSurah(s);
     setLoading(true);
-    // Prefer downloaded local file
     const dl = await isDownloaded(s.number, reciterId);
     const src = dl?.localUri ?? fullSurahAudioUrl(reciterId, s.number, 128);
     a.src = src;
     a.playbackRate = speed;
+    // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
+    const onMetaOnce = () => {
+      updateMediaSession(s);
+      a.removeEventListener("loadedmetadata", onMetaOnce);
+    };
+    a.addEventListener("loadedmetadata", onMetaOnce);
     try {
       await a.play();
     } catch (e) {
@@ -122,7 +127,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-    // history
     const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
     const next = [entry, ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId))].slice(0, 50);
     setHistory(next); storageSet("quranpro:history", next);

@@ -26,13 +26,18 @@ let pluginPromise: Promise<any> | null = null;
 async function loadPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!pluginPromise) {
-    const pkg = "@capacitor-community/media-session";
-    pluginPromise = import(/* @vite-ignore */ pkg)
-      .then((m: any) => m.MediaSession ?? m.default ?? m)
-      .catch((e) => {
+    // Dynamic import me string literal qe Vite e di si ta lere optional.
+    // Wrapped ne try/catch sepse plugin-i mund te mos jete instaluar.
+    pluginPromise = (async () => {
+      try {
+        // @ts-ignore - plugin opsional, mund te mos jete i instaluar
+        const m: any = await import(/* @vite-ignore */ "@capacitor-community/media-session");
+        return m.MediaSession ?? m.default ?? m;
+      } catch (e) {
         console.warn("[media-session] plugin nuk u ngarkua:", e);
         return null;
-      });
+      }
+    })();
   }
   return pluginPromise;
 }

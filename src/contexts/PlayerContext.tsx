@@ -110,11 +110,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current; if (!a) return;
     setSurah(s);
     setLoading(true);
-    // Prefer downloaded local file
     const dl = await isDownloaded(s.number, reciterId);
     const src = dl?.localUri ?? fullSurahAudioUrl(reciterId, s.number, 128);
     a.src = src;
     a.playbackRate = speed;
+    // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
+    const onMetaOnce = () => {
+      updateMediaSession(s);
+      a.removeEventListener("loadedmetadata", onMetaOnce);
+    };
+    a.addEventListener("loadedmetadata", onMetaOnce);
     try {
       await a.play();
     } catch (e) {
@@ -122,7 +127,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-    // history
     const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
     const next = [entry, ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId))].slice(0, 50);
     setHistory(next); storageSet("quranpro:history", next);
@@ -183,15 +187,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
   const updateMediaSession = (s: Surah) => {
+    const dur = audioRef.current?.duration && isFinite(audioRef.current.duration)
+      ? audioRef.current.duration : undefined;
     const meta = {
       title: `${s.englishName} — ${s.name}`,
       artist: reciterName,
       album: "Quran Pro",
       artwork: "/icon-512.png",
+      duration: dur,
     };
-    // Native (Capacitor) — punon kur telefoni është në qelës
     setNativeMetadata(meta);
-    // Web fallback
     if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: meta.title,
@@ -204,14 +209,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       });
     }
   };
+
   useEffect(() => {
+    const seekRel = (offset: number) => {
+      const a = audioRef.current; if (!a) return;
+      const next = Math.max(0, Math.min((a.duration || 0), a.currentTime + offset));
+      a.currentTime = next;
+    };
     // Native handlers (Capacitor) — punojnë në lock screen
     setNativeHandlers({
       play: () => audioRef.current?.play(),
       pause: () => audioRef.current?.pause(),
+      stop: () => { const a = audioRef.current; if (a) { a.pause(); a.currentTime = 0; } },
       previousTrack: () => doPrev(),
       nextTrack: () => doNext(),
       seekTo: (sec) => { if (audioRef.current) audioRef.current.currentTime = sec; },
+      seekForward: (off) => seekRel(off || 10),
+      seekBackward: (off) => seekRel(-(off || 10)),
     });
     // Web fallback
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
@@ -222,34 +236,48 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setMediaAction("pause", () => audioRef.current?.pause());
     setMediaAction("previoustrack", () => doPrev());
     setMediaAction("nexttrack", () => doNext());
+    setMediaAction("seekforward", (e) => seekRel(e.seekOffset ?? 10));
+    setMediaAction("seekbackward", (e) => seekRel(-(e.seekOffset ?? 10)));
     setMediaAction("seekto", (e) => {
-      if (audioRef.current && e.seekTime != null) audioRef.current.currentTime = e.seekTime;
+      if (!audioRef.current || e.seekTime == null) return;
+      // Nese eshte fastSeek (drag), perdor fastSeek; perndryshe set direkt
+      if (e.fastSeek && "fastSeek" in audioRef.current) {
+        (audioRef.current as any).fastSeek(e.seekTime);
+      } else {
+        audioRef.current.currentTime = e.seekTime;
+      }
     });
     return () => {
-      ["play","pause","previoustrack","nexttrack","seekto"].forEach((k) => {
+      ["play","pause","previoustrack","nexttrack","seekto","seekforward","seekbackward"].forEach((k) => {
         try { navigator.mediaSession.setActionHandler(k as MediaSessionAction, null); } catch {}
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update playback position state for lock screen scrubber
+  // Update playback position state (web + native) — sinkronizon scrubber-in
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    if (!duration) return;
-    try {
-      navigator.mediaSession.setPositionState({
-        duration, position: currentTime, playbackRate: speed,
-      });
-    } catch {}
-  }, [currentTime, duration, speed]);
+    if (!duration || !isFinite(duration)) return;
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration, position: Math.min(currentTime, duration), playbackRate: speed,
+        });
+      } catch {}
+    }
+    // Native — perdit position state per scrubber ne lock screen
+    setNativePlaybackState(
+      isPlaying ? "playing" : "paused",
+      Math.min(currentTime, duration),
+      duration,
+      speed,
+    );
+  }, [currentTime, duration, speed, isPlaying]);
 
   useEffect(() => {
-    // Native (Capacitor) — sinkronizo state për notification në lock screen
-    setNativePlaybackState(isPlaying ? "playing" : "paused", currentTime, duration);
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-  }, [isPlaying, currentTime, duration]);
+  }, [isPlaying]);
 
   const value = useMemo<PlayerCtx>(() => ({
     surah, reciterId, reciterName, isPlaying, currentTime, duration, loading, autoplay, speed,

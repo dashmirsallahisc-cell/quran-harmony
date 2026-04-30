@@ -13,24 +13,26 @@ import { Capacitor } from "@capacitor/core";
 
 type ActionHandler = () => void;
 type SeekHandler = (sec: number) => void;
+type SeekRelHandler = (offset: number) => void;
 
 interface Handlers {
   play?: ActionHandler;
   pause?: ActionHandler;
+  stop?: ActionHandler;
   previousTrack?: ActionHandler;
   nextTrack?: ActionHandler;
   seekTo?: SeekHandler;
+  seekForward?: SeekRelHandler;
+  seekBackward?: SeekRelHandler;
 }
 
 let pluginPromise: Promise<any> | null = null;
 async function loadPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!pluginPromise) {
-    // Dynamic import me string literal qe Vite e di si ta lere optional.
-    // Wrapped ne try/catch sepse plugin-i mund te mos jete instaluar.
     pluginPromise = (async () => {
       try {
-        // @ts-ignore - plugin opsional, mund te mos jete i instaluar
+        // @ts-ignore - plugin opsional
         const m: any = await import(/* @vite-ignore */ "@capacitor-community/media-session");
         return m.MediaSession ?? m.default ?? m;
       } catch (e) {
@@ -64,13 +66,18 @@ export async function setNativeMetadata(opts: {
   }
 }
 
-export async function setNativePlaybackState(state: "playing" | "paused" | "none", position?: number, duration?: number) {
+export async function setNativePlaybackState(
+  state: "playing" | "paused" | "none",
+  position?: number,
+  duration?: number,
+  playbackRate: number = 1,
+) {
   const p = await loadPlugin();
   if (!p) return;
   try {
     await p.setPlaybackState({ playbackState: state });
-    if (position != null && duration != null) {
-      await p.setPositionState({ duration, position, playbackRate: 1 });
+    if (position != null && duration != null && duration > 0) {
+      await p.setPositionState({ duration, position, playbackRate });
     }
   } catch (e) {
     console.warn("[media-session] setPlaybackState failed", e);
@@ -90,7 +97,11 @@ export async function setNativeHandlers(h: Handlers) {
   };
   wrap("play", h.play);
   wrap("pause", h.pause);
+  wrap("stop", h.stop);
   wrap("previoustrack", h.previousTrack);
   wrap("nexttrack", h.nextTrack);
   wrap("seekto", h.seekTo ? (d: any) => h.seekTo!(d?.seekTime ?? 0) : undefined);
+  wrap("seekforward", h.seekForward ? (d: any) => h.seekForward!(d?.seekOffset ?? 10) : undefined);
+  wrap("seekbackward", h.seekBackward ? (d: any) => h.seekBackward!(d?.seekOffset ?? 10) : undefined);
 }
+

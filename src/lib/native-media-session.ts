@@ -32,8 +32,11 @@ async function loadPlugin() {
   if (!pluginPromise) {
     pluginPromise = (async () => {
       try {
+        // Fshihim stringun nga static analyzer i Vite-s qe te mos provoje ta resolve
+        // ne web (plugin-i ekziston vetem ne Android/iOS pas `npm install`).
+        const pkg = ["@capacitor-community", "media-session"].join("/");
         // @ts-ignore - plugin opsional
-        const m: any = await import(/* @vite-ignore */ "@capacitor-community/media-session");
+        const m: any = await import(/* @vite-ignore */ /* webpackIgnore: true */ pkg);
         return m.MediaSession ?? m.default ?? m;
       } catch (e) {
         console.warn("[media-session] plugin nuk u ngarkua:", e);

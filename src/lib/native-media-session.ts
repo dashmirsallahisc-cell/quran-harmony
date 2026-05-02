@@ -1,9 +1,9 @@
-// Wrapper për @capacitor-community/media-session
+// Wrapper për `capacitor-media-session` (community plugin nga Mike Summerfeldt)
 // Përdoret VETËM në Android/iOS (Capacitor). Në web fallback-on tek
 // navigator.mediaSession standard.
 //
 // Plugin-i instalohet lokalisht me:
-//   npm install @capacitor-community/media-session
+//   npm install capacitor-media-session
 //   npx cap sync android
 //
 // Importi është dynamic që build-i të mos thyhet kur plugin-i mungon
@@ -34,7 +34,7 @@ async function loadPlugin() {
       try {
         // Fshihim stringun nga static analyzer i Vite-s qe te mos provoje ta resolve
         // ne web (plugin-i ekziston vetem ne Android/iOS pas `npm install`).
-        const pkg = ["@capacitor-community", "media-session"].join("/");
+        const pkg = ["capacitor", "media-session"].join("-");
         // @ts-ignore - plugin opsional
         const m: any = await import(/* @vite-ignore */ /* webpackIgnore: true */ pkg);
         return m.MediaSession ?? m.default ?? m;

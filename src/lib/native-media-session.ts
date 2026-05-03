@@ -1,15 +1,13 @@
-// Wrapper për `capacitor-media-session` (community plugin nga Mike Summerfeldt)
+// Wrapper për `@capgo/capacitor-media-session` (Capacitor 8)
 // Përdoret VETËM në Android/iOS (Capacitor). Në web fallback-on tek
 // navigator.mediaSession standard.
 //
 // Plugin-i instalohet lokalisht me:
-//   npm install capacitor-media-session
+//   npm install @capgo/capacitor-media-session
 //   npx cap sync android
-//
-// Importi është dynamic që build-i të mos thyhet kur plugin-i mungon
-// (p.sh. në preview-n web të Lovable).
 
 import { Capacitor } from "@capacitor/core";
+import { MediaSession } from "@capgo/capacitor-media-session";
 
 type ActionHandler = () => void;
 type SeekHandler = (sec: number) => void;
@@ -32,12 +30,7 @@ async function loadPlugin() {
   if (!pluginPromise) {
     pluginPromise = (async () => {
       try {
-        // Fshihim stringun nga static analyzer i Vite-s qe te mos provoje ta resolve
-        // ne web (plugin-i ekziston vetem ne Android/iOS pas `npm install`).
-        const pkg = ["capacitor", "media-session"].join("-");
-        // @ts-ignore - plugin opsional
-        const m: any = await import(/* @vite-ignore */ /* webpackIgnore: true */ pkg);
-        return m.MediaSession ?? m.default ?? m;
+        return MediaSession;
       } catch (e) {
         console.warn("[media-session] plugin nuk u ngarkua:", e);
         return null;
@@ -90,21 +83,23 @@ export async function setNativePlaybackState(
 export async function setNativeHandlers(h: Handlers) {
   const p = await loadPlugin();
   if (!p) return;
-  const wrap = (action: string, fn?: (...a: any[]) => void) => {
+  const wrap = async (action: string, fn?: (...a: any[]) => void) => {
     try {
-      if (fn) p.setActionHandler({ action }, fn);
-      else p.setActionHandler({ action }, null);
+      if (fn) await p.setActionHandler({ action }, fn);
+      else await p.setActionHandler({ action }, null);
     } catch (e) {
       console.warn("[media-session] setActionHandler", action, e);
     }
   };
-  wrap("play", h.play);
-  wrap("pause", h.pause);
-  wrap("stop", h.stop);
-  wrap("previoustrack", h.previousTrack);
-  wrap("nexttrack", h.nextTrack);
-  wrap("seekto", h.seekTo ? (d: any) => h.seekTo!(d?.seekTime ?? 0) : undefined);
-  wrap("seekforward", h.seekForward ? (d: any) => h.seekForward!(d?.seekOffset ?? 10) : undefined);
-  wrap("seekbackward", h.seekBackward ? (d: any) => h.seekBackward!(d?.seekOffset ?? 10) : undefined);
+  await Promise.all([
+    wrap("play", h.play),
+    wrap("pause", h.pause),
+    wrap("stop", h.stop),
+    wrap("previoustrack", h.previousTrack),
+    wrap("nexttrack", h.nextTrack),
+    wrap("seekto", h.seekTo ? (d: any) => h.seekTo!(d?.seekTime ?? 0) : undefined),
+    wrap("seekforward", h.seekForward ? () => h.seekForward!(10) : undefined),
+    wrap("seekbackward", h.seekBackward ? () => h.seekBackward!(10) : undefined),
+  ]);
 }
 

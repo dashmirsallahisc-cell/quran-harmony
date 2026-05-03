@@ -36,6 +36,11 @@ export interface SurahDetail extends Surah {
   edition: { identifier: string; language: string; name: string; englishName: string };
 }
 
+export const FULL_SURAH_RECITERS: Reciter[] = [
+  { identifier: "ar.alafasy", language: "ar", name: "مشاري العفاسي", englishName: "Mishary Alafasy", format: "audio", type: "surahbyverse", bitrate: "128" },
+  { identifier: "ar.abdullahbasfar", language: "ar", name: "عبد الله بصفر", englishName: "Abdullah Basfar", format: "audio", type: "surahbyverse", bitrate: "128" },
+];
+
 export async function fetchSurahs(): Promise<Surah[]> {
   const res = await fetch(`${BASE}/surah`);
   const json = await res.json();
@@ -43,9 +48,9 @@ export async function fetchSurahs(): Promise<Surah[]> {
 }
 
 export async function fetchReciters(): Promise<Reciter[]> {
-  const res = await fetch(`${BASE}/edition?format=audio&type=versebyverse`);
-  const json = await res.json();
-  return json.data as Reciter[];
+  // Full-surah player uses audio-surah CDN; most API reciters are verse-by-verse only
+  // and return 404 for full-surah MP3s, which made Android look frozen after selection.
+  return FULL_SURAH_RECITERS;
 }
 
 export async function fetchTranslations(): Promise<Reciter[]> {

@@ -41,6 +41,7 @@ const Ctx = createContext<PlayerCtx | null>(null);
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const nativeSyncRef = useRef({ at: 0, state: "none" as "playing" | "paused" | "none", position: -1 });
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [surah, setSurah] = useState<Surah | null>(null);
   const [reciterId, setReciterId] = useState("ar.alafasy");
@@ -110,8 +111,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current; if (!a) return;
     setSurah(s);
     setLoading(true);
-    const dl = await isDownloaded(s.number, reciterId);
-    const src = dl?.localUri ?? fullSurahAudioUrl(reciterId, s.number, 128);
+    const src = fullSurahAudioUrl(reciterId, s.number, 128);
+    a.pause();
+    a.currentTime = 0;
     a.src = src;
     a.playbackRate = speed;
     // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
@@ -121,6 +123,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
     a.addEventListener("loadedmetadata", onMetaOnce);
     try {
+      const dl = await isDownloaded(s.number, reciterId).catch(() => null);
+      if (dl?.localUri) a.src = dl.localUri;
       await a.play();
     } catch (e) {
       console.warn("play failed", e);
@@ -265,13 +269,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         });
       } catch {}
     }
-    // Native — perdit position state per scrubber ne lock screen
-    setNativePlaybackState(
-      isPlaying ? "playing" : "paused",
-      Math.min(currentTime, duration),
-      duration,
-      speed,
-    );
+    const nativeState = isPlaying ? "playing" : "paused";
+    const position = Math.min(currentTime, duration);
+    const now = Date.now();
+    const last = nativeSyncRef.current;
+    if (last.state !== nativeState || Math.abs(last.position - position) >= 5 || now - last.at >= 5000) {
+      nativeSyncRef.current = { at: now, state: nativeState, position };
+      setNativePlaybackState(nativeState, position, duration, speed);
+    }
   }, [currentTime, duration, speed, isPlaying]);
 
   useEffect(() => {

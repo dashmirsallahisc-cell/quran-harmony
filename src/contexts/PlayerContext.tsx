@@ -279,17 +279,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [isPlaying]);
 
   const value = useMemo<PlayerCtx>(() => ({
-    surah, reciterId, reciterName, isPlaying, currentTime, duration, loading, autoplay, speed,
+    surah, reciterId, reciterName, isPlaying, loading, autoplay, speed,
     surahs, setSurahs, setReciter, setAutoplay: setAutoplayP, setSpeed: setSpeedP,
     play: playSurah, toggle, next, prev, seek,
     history, favorites, toggleFavorite,
-  }), [surah, reciterId, reciterName, isPlaying, currentTime, duration, loading, autoplay, speed, surahs, history, favorites, playSurah, toggle, next, prev, seek]);
+  }), [surah, reciterId, reciterName, isPlaying, loading, autoplay, speed, surahs, history, favorites, playSurah, toggle, next, prev, seek]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      <ProgressCtx.Provider value={{ currentTime, duration }}>{children}</ProgressCtx.Provider>
+    </Ctx.Provider>
+  );
 }
 
 export function usePlayer() {
   const v = useContext(Ctx);
   if (!v) throw new Error("usePlayer must be inside PlayerProvider");
+  return v;
+}
+
+export function usePlayerProgress() {
+  const v = useContext(ProgressCtx);
+  if (!v) throw new Error("usePlayerProgress must be inside PlayerProvider");
   return v;
 }

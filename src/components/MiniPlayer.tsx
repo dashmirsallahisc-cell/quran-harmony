@@ -1,6 +1,6 @@
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { usePlayer } from "@/contexts/PlayerContext";
+import { usePlayer, usePlayerProgress } from "@/contexts/PlayerContext";
 
 const fmt = (s: number) => {
   if (!isFinite(s)) return "00:00";
@@ -10,8 +10,9 @@ const fmt = (s: number) => {
 
 export function MiniPlayer() {
   const p = usePlayer();
+  const progress = usePlayerProgress();
   if (!p.surah) return null;
-  const pct = p.duration ? (p.currentTime / p.duration) * 100 : 0;
+  const pct = progress.duration ? (progress.currentTime / progress.duration) * 100 : 0;
   return (
     <div className="border-t border-border/40 bg-surface/95 px-3 pt-3 pb-2 backdrop-blur-md">
       <div className="flex items-center gap-3">
@@ -35,16 +36,16 @@ export function MiniPlayer() {
         </button>
       </div>
       <div className="mt-2 flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
-        <span>{fmt(p.currentTime)}</span>
+        <span>{fmt(progress.currentTime)}</span>
         <div className="relative flex-1">
           <input
-            type="range" min={0} max={p.duration || 0} step={1} value={p.currentTime}
+            type="range" min={0} max={progress.duration || 0} step={1} value={progress.currentTime}
             onChange={(e) => p.seek(Number(e.target.value))}
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted accent-[var(--color-gold)]"
             style={{ background: `linear-gradient(to right, var(--color-gold) ${pct}%, var(--color-muted) ${pct}%)` }}
           />
         </div>
-        <span>{fmt(p.duration)}</span>
+        <span>{fmt(progress.duration)}</span>
       </div>
     </div>
   );

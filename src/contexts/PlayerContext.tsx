@@ -271,7 +271,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try {
         navigator.mediaSession.setActionHandler(action, handler);
-      } catch {}
+      } catch {
+        return;
+      }
     };
     setMediaAction("play", () => audioRef.current?.play());
     setMediaAction("pause", () => audioRef.current?.pause());
@@ -301,7 +303,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       ].forEach((k) => {
         try {
           navigator.mediaSession.setActionHandler(k as MediaSessionAction, null);
-        } catch {}
+        } catch {
+          return;
+        }
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -317,7 +321,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           position: Math.min(currentTime, duration),
           playbackRate: speed,
         });
-      } catch {}
+      } catch {
+        return;
+      }
     }
   }, [currentTime, duration, speed]);
 

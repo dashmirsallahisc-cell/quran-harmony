@@ -82,8 +82,6 @@ export async function fetchSurahs(): Promise<Surah[]> {
 }
 
 export async function fetchReciters(): Promise<Reciter[]> {
-  // Full-surah player uses audio-surah CDN; most API reciters are verse-by-verse only
-  // and return 404 for full-surah MP3s, which made Android look frozen after selection.
   return FULL_SURAH_RECITERS;
 }
 
@@ -119,7 +117,10 @@ export async function fetchSurahArabic(surahNumber: number): Promise<SurahDetail
 
 /** Build a full-surah MP3 URL (one file per surah) */
 export function fullSurahAudioUrl(reciterIdentifier: string, surahNumber: number, bitrate = 128) {
-  // The full-surah CDN expects the complete edition id, e.g. `ar.alafasy`.
-  const folder = reciterIdentifier;
-  return `${CDN}-surah/${bitrate}/${folder}/${surahNumber}.mp3`;
+  const mp3QuranReciter = FULL_SURAH_RECITERS.find((r) => r.identifier === reciterIdentifier);
+  if (mp3QuranReciter?.server) {
+    return `${mp3QuranReciter.server.replace(/\/$/, "")}/${String(surahNumber).padStart(3, "0")}.mp3`;
+  }
+
+  return `${CDN}-surah/${bitrate}/${reciterIdentifier}/${surahNumber}.mp3`;
 }

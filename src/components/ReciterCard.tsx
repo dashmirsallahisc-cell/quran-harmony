@@ -4,7 +4,11 @@ import { fetchReciters } from "@/lib/quran-api";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useState } from "react";
 
@@ -13,7 +17,7 @@ export function ReciterCard() {
   const { lang } = useSettings();
   const [open, setOpen] = useState(false);
   const { data: reciters = [], isLoading } = useQuery({
-    queryKey: ["reciters"],
+    queryKey: ["reciters", "full-surah-v2"],
     queryFn: fetchReciters,
     staleTime: 1000 * 60 * 60 * 24,
   });
@@ -27,7 +31,9 @@ export function ReciterCard() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-xs font-medium text-gold">{lang.ui.reciter}</div>
-            <div className="truncate text-lg font-semibold text-foreground">{player.reciterName}</div>
+            <div className="truncate text-lg font-semibold text-foreground">
+              {player.reciterName}
+            </div>
           </div>
           <ChevronDown className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -37,12 +43,17 @@ export function ReciterCard() {
           <DialogTitle>{lang.ui.selectReciter}</DialogTitle>
         </DialogHeader>
         <div className="-mx-6 max-h-[60vh] overflow-y-auto px-6">
-          {isLoading && <div className="py-8 text-center text-muted-foreground">{lang.ui.loading}</div>}
+          {isLoading && (
+            <div className="py-8 text-center text-muted-foreground">{lang.ui.loading}</div>
+          )}
           <div className="flex flex-col gap-1">
             {reciters.map((r) => (
               <button
                 key={r.identifier}
-                onClick={() => { player.setReciter(r.identifier, r.englishName); setOpen(false); }}
+                onClick={() => {
+                  player.setReciter(r.identifier, r.englishName);
+                  setOpen(false);
+                }}
                 className={`flex items-center justify-between rounded-lg p-3 text-left transition-base hover:bg-muted/40 ${
                   r.identifier === player.reciterId ? "bg-muted/60" : ""
                 }`}

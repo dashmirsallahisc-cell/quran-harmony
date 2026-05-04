@@ -42,7 +42,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [surah, setSurah] = useState<Surah | null>(null);
-  const [reciterId, setReciterId] = useState("ar.alafasy");
+  const [reciterId, setReciterId] = useState("mp3quran:afs");
   const [reciterName, setReciterName] = useState("Mishary Alafasy");
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -57,7 +57,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const r = await storageGet<{ id: string; name: string } | null>("quranpro:reciter", null);
-      if (r) { setReciterId(r.id); setReciterName(r.name); }
+      if (r?.id === "ar.alafasy") {
+        setReciterId("mp3quran:afs");
+        setReciterName("Mishary Alafasy");
+        storageSet("quranpro:reciter", { id: "mp3quran:afs", name: "Mishary Alafasy" });
+      } else if (r) {
+        setReciterId(r.id);
+        setReciterName(r.name);
+      }
       setAutoplay(await storageGet("quranpro:autoplay", true));
       setSpeed(await storageGet("quranpro:speed", 1));
       setHistory(await storageGet("quranpro:history", []));

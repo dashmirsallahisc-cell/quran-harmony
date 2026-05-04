@@ -13,7 +13,7 @@ export function ReciterCard() {
   const { lang } = useSettings();
   const [open, setOpen] = useState(false);
   const { data: reciters = [], isLoading } = useQuery({
-    queryKey: ["reciters"],
+    queryKey: ["reciters", "full-surah-v2"],
     queryFn: fetchReciters,
     staleTime: 1000 * 60 * 60 * 24,
   });

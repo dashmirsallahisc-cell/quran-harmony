@@ -4,7 +4,8 @@ import { usePlayer, usePlayerProgress } from "@/contexts/PlayerContext";
 
 const fmt = (s: number) => {
   if (!isFinite(s)) return "00:00";
-  const m = Math.floor(s / 60), x = Math.floor(s % 60);
+  const m = Math.floor(s / 60),
+    x = Math.floor(s % 60);
   return `${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}`;
 };
 
@@ -25,13 +26,29 @@ export function MiniPlayer() {
             <div className="truncate text-xs text-gold">{p.reciterName}</div>
           </div>
         </Link>
-        <button onClick={p.prev} aria-label="Previous" className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-base hover:bg-muted/50 active:scale-90">
+        <button
+          onClick={p.prev}
+          aria-label="Previous"
+          className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-base hover:bg-muted/50 active:scale-90"
+        >
           <SkipBack className="h-5 w-5 fill-current" />
         </button>
-        <button onClick={p.toggle} aria-label="Play/Pause" className="grid h-12 w-12 place-items-center rounded-full bg-gradient-gold text-gold-foreground shadow-glow transition-base active:scale-90">
-          {p.isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+        <button
+          onClick={p.toggle}
+          aria-label="Play/Pause"
+          className="grid h-12 w-12 place-items-center rounded-full bg-gradient-gold text-gold-foreground shadow-glow transition-base active:scale-90"
+        >
+          {p.isPlaying ? (
+            <Pause className="h-5 w-5 fill-current" />
+          ) : (
+            <Play className="h-5 w-5 fill-current ml-0.5" />
+          )}
         </button>
-        <button onClick={p.next} aria-label="Next" className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-base hover:bg-muted/50 active:scale-90">
+        <button
+          onClick={p.next}
+          aria-label="Next"
+          className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-base hover:bg-muted/50 active:scale-90"
+        >
           <SkipForward className="h-5 w-5 fill-current" />
         </button>
       </div>
@@ -39,10 +56,16 @@ export function MiniPlayer() {
         <span>{fmt(progress.currentTime)}</span>
         <div className="relative flex-1">
           <input
-            type="range" min={0} max={progress.duration || 0} step={1} value={progress.currentTime}
+            type="range"
+            min={0}
+            max={progress.duration || 0}
+            step={1}
+            value={progress.currentTime}
             onChange={(e) => p.seek(Number(e.target.value))}
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted accent-[var(--color-gold)]"
-            style={{ background: `linear-gradient(to right, var(--color-gold) ${pct}%, var(--color-muted) ${pct}%)` }}
+            style={{
+              background: `linear-gradient(to right, var(--color-gold) ${pct}%, var(--color-muted) ${pct}%)`,
+            }}
           />
         </div>
         <span>{fmt(progress.duration)}</span>

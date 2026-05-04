@@ -1,12 +1,22 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import type { Surah } from "@/lib/quran-api";
 import { fullSurahAudioUrl } from "@/lib/quran-api";
 import { storageGet, storageSet } from "@/lib/storage";
 import { isDownloaded } from "@/lib/downloads";
 
-interface HistoryEntry { surahNumber: number; reciterId: string; ts: number; }
+interface HistoryEntry {
+  surahNumber: number;
+  reciterId: string;
+  ts: number;
+}
 
 interface PlayerState {
   surah: Surah | null;
@@ -116,46 +126,58 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // Use ref for stable handlers
   const stateRef = useRef({ surah, surahs, reciterId, autoplay });
-  useEffect(() => { stateRef.current = { surah, surahs, reciterId, autoplay }; });
+  useEffect(() => {
+    stateRef.current = { surah, surahs, reciterId, autoplay };
+  });
 
   const handleEnded = () => {
     const { autoplay: ap } = stateRef.current;
     if (ap) doNext();
   };
 
-  const playSurah = useCallback(async (s: Surah) => {
-    const a = audioRef.current; if (!a) return;
-    setSurah(s);
-    setLoading(true);
-    const src = fullSurahAudioUrl(reciterId, s.number, 128);
-    a.pause();
-    a.currentTime = 0;
-    a.src = src;
-    a.playbackRate = speed;
-    // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
-    const onMetaOnce = () => {
+  const playSurah = useCallback(
+    async (s: Surah) => {
+      const a = audioRef.current;
+      if (!a) return;
+      setSurah(s);
+      setLoading(true);
+      const src = fullSurahAudioUrl(reciterId, s.number, 128);
+      a.pause();
+      a.currentTime = 0;
+      a.src = src;
+      a.playbackRate = speed;
+      // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
+      const onMetaOnce = () => {
+        updateMediaSession(s);
+        a.removeEventListener("loadedmetadata", onMetaOnce);
+      };
+      a.addEventListener("loadedmetadata", onMetaOnce);
+      try {
+        const dl = await isDownloaded(s.number, reciterId).catch(() => null);
+        if (dl?.localUri) a.src = dl.localUri;
+        await a.play();
+      } catch (e) {
+        console.warn("play failed", e);
+      } finally {
+        setLoading(false);
+      }
+      const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
+      const next = [
+        entry,
+        ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId)),
+      ].slice(0, 50);
+      setHistory(next);
+      storageSet("quranpro:history", next);
       updateMediaSession(s);
-      a.removeEventListener("loadedmetadata", onMetaOnce);
-    };
-    a.addEventListener("loadedmetadata", onMetaOnce);
-    try {
-      const dl = await isDownloaded(s.number, reciterId).catch(() => null);
-      if (dl?.localUri) a.src = dl.localUri;
-      await a.play();
-    } catch (e) {
-      console.warn("play failed", e);
-    } finally {
-      setLoading(false);
-    }
-    const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
-    const next = [entry, ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId))].slice(0, 50);
-    setHistory(next); storageSet("quranpro:history", next);
-    updateMediaSession(s);
-  }, [reciterId, speed, history]); // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    [reciterId, speed, history],
+  ); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = useCallback(() => {
-    const a = audioRef.current; if (!a || !surah) return;
-    if (a.paused) a.play(); else a.pause();
+    const a = audioRef.current;
+    if (!a || !surah) return;
+    if (a.paused) a.play();
+    else a.pause();
   }, [surah]);
 
   const doNext = () => {
@@ -177,12 +199,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const prev = useCallback(doPrev, []); // eslint-disable-line
 
   const seek = useCallback((sec: number) => {
-    const a = audioRef.current; if (!a) return;
+    const a = audioRef.current;
+    if (!a) return;
     a.currentTime = sec;
   }, []);
 
   const setReciter = (id: string, name: string) => {
-    setReciterId(id); setReciterName(name);
+    setReciterId(id);
+    setReciterName(name);
     storageSet("quranpro:reciter", { id, name });
     // Nese ka nje surah qe po luan, riluaje me recituesin e ri
     const a = audioRef.current;
@@ -195,20 +219,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (wasPlaying) a.play().catch((e) => console.warn("reciter switch play failed", e));
     }
   };
-  const setAutoplayP = (v: boolean) => { setAutoplay(v); storageSet("quranpro:autoplay", v); };
+  const setAutoplayP = (v: boolean) => {
+    setAutoplay(v);
+    storageSet("quranpro:autoplay", v);
+  };
   const setSpeedP = (v: number) => {
-    setSpeed(v); storageSet("quranpro:speed", v);
+    setSpeed(v);
+    storageSet("quranpro:speed", v);
     if (audioRef.current) audioRef.current.playbackRate = v;
   };
   const toggleFavorite = (n: number) => {
     const next = favorites.includes(n) ? favorites.filter((x) => x !== n) : [...favorites, n];
-    setFavorites(next); storageSet("quranpro:favorites", next);
+    setFavorites(next);
+    storageSet("quranpro:favorites", next);
   };
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
   const updateMediaSession = (s: Surah) => {
-    const dur = audioRef.current?.duration && isFinite(audioRef.current.duration)
-      ? audioRef.current.duration : undefined;
+    const dur =
+      audioRef.current?.duration && isFinite(audioRef.current.duration)
+        ? audioRef.current.duration
+        : undefined;
     const meta = {
       title: `${s.englishName} — ${s.name}`,
       artist: reciterName,
@@ -231,13 +262,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const seekRel = (offset: number) => {
-      const a = audioRef.current; if (!a) return;
-      const next = Math.max(0, Math.min((a.duration || 0), a.currentTime + offset));
+      const a = audioRef.current;
+      if (!a) return;
+      const next = Math.max(0, Math.min(a.duration || 0, a.currentTime + offset));
       a.currentTime = next;
     };
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
-      try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {}
     };
     setMediaAction("play", () => audioRef.current?.play());
     setMediaAction("pause", () => audioRef.current?.pause());
@@ -248,14 +282,26 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setMediaAction("seekto", (e) => {
       if (!audioRef.current || e.seekTime == null) return;
       if (e.fastSeek && "fastSeek" in audioRef.current) {
-        (audioRef.current as HTMLAudioElement & { fastSeek: (time: number) => void }).fastSeek(e.seekTime);
+        (audioRef.current as HTMLAudioElement & { fastSeek: (time: number) => void }).fastSeek(
+          e.seekTime,
+        );
       } else {
         audioRef.current.currentTime = e.seekTime;
       }
     });
     return () => {
-      ["play","pause","previoustrack","nexttrack","seekto","seekforward","seekbackward"].forEach((k) => {
-        try { navigator.mediaSession.setActionHandler(k as MediaSessionAction, null); } catch {}
+      [
+        "play",
+        "pause",
+        "previoustrack",
+        "nexttrack",
+        "seekto",
+        "seekforward",
+        "seekbackward",
+      ].forEach((k) => {
+        try {
+          navigator.mediaSession.setActionHandler(k as MediaSessionAction, null);
+        } catch {}
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -267,7 +313,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
       try {
         navigator.mediaSession.setPositionState({
-          duration, position: Math.min(currentTime, duration), playbackRate: speed,
+          duration,
+          position: Math.min(currentTime, duration),
+          playbackRate: speed,
         });
       } catch {}
     }
@@ -278,12 +326,47 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
 
-  const value = useMemo<PlayerCtx>(() => ({
-    surah, reciterId, reciterName, isPlaying, loading, autoplay, speed,
-    surahs, setSurahs, setReciter, setAutoplay: setAutoplayP, setSpeed: setSpeedP,
-    play: playSurah, toggle, next, prev, seek,
-    history, favorites, toggleFavorite,
-  }), [surah, reciterId, reciterName, isPlaying, loading, autoplay, speed, surahs, history, favorites, playSurah, toggle, next, prev, seek]);
+  const value = useMemo<PlayerCtx>(
+    () => ({
+      surah,
+      reciterId,
+      reciterName,
+      isPlaying,
+      loading,
+      autoplay,
+      speed,
+      surahs,
+      setSurahs,
+      setReciter,
+      setAutoplay: setAutoplayP,
+      setSpeed: setSpeedP,
+      play: playSurah,
+      toggle,
+      next,
+      prev,
+      seek,
+      history,
+      favorites,
+      toggleFavorite,
+    }),
+    [
+      surah,
+      reciterId,
+      reciterName,
+      isPlaying,
+      loading,
+      autoplay,
+      speed,
+      surahs,
+      history,
+      favorites,
+      playSurah,
+      toggle,
+      next,
+      prev,
+      seek,
+    ],
+  );
 
   return (
     <Ctx.Provider value={value}>

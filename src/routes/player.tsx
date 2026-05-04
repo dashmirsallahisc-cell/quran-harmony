@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, SkipBack, SkipForward, Heart, Repeat, Gauge } from "lucide-react";
-import { usePlayer } from "@/contexts/PlayerContext";
+import { usePlayer, usePlayerProgress } from "@/contexts/PlayerContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { fetchSurahArabic, fetchSurahWithTranslation } from "@/lib/quran-api";
 
@@ -15,6 +15,7 @@ const fmt = (s: number) => {
 
 function PlayerPage() {
   const p = usePlayer();
+  const progress = usePlayerProgress();
   const { lang, showTranslation } = useSettings();
 
   const { data: arabic } = useQuery({
@@ -42,7 +43,7 @@ function PlayerPage() {
     );
   }
 
-  const pct = p.duration ? (p.currentTime / p.duration) * 100 : 0;
+  const pct = progress.duration ? (progress.currentTime / progress.duration) * 100 : 0;
   const isFav = p.favorites.includes(p.surah.number);
 
   return (
@@ -61,14 +62,14 @@ function PlayerPage() {
       </div>
 
       <div className="flex items-center justify-between gap-3 text-xs tabular-nums text-muted-foreground">
-        <span>{fmt(p.currentTime)}</span>
+        <span>{fmt(progress.currentTime)}</span>
         <input
-          type="range" min={0} max={p.duration || 0} step={1} value={p.currentTime}
+          type="range" min={0} max={progress.duration || 0} step={1} value={progress.currentTime}
           onChange={(e) => p.seek(Number(e.target.value))}
           className="h-1.5 flex-1 appearance-none rounded-full"
           style={{ background: `linear-gradient(to right, var(--color-gold) ${pct}%, var(--color-muted) ${pct}%)` }}
         />
-        <span>{fmt(p.duration)}</span>
+        <span>{fmt(progress.duration)}</span>
       </div>
 
       <div className="flex items-center justify-center gap-6">

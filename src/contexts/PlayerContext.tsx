@@ -5,7 +5,6 @@ import type { Surah } from "@/lib/quran-api";
 import { fullSurahAudioUrl } from "@/lib/quran-api";
 import { storageGet, storageSet } from "@/lib/storage";
 import { isDownloaded } from "@/lib/downloads";
-import { setNativeMetadata, setNativePlaybackState, setNativeHandlers } from "@/lib/native-media-session";
 
 interface HistoryEntry { surahNumber: number; reciterId: string; ts: number; }
 
@@ -41,7 +40,6 @@ const Ctx = createContext<PlayerCtx | null>(null);
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const nativeSyncRef = useRef({ at: 0, state: "none" as "playing" | "paused" | "none", position: -1 });
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [surah, setSurah] = useState<Surah | null>(null);
   const [reciterId, setReciterId] = useState("ar.alafasy");
@@ -200,7 +198,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       artwork: "/icon-512.png",
       duration: dur,
     };
-    setNativeMetadata(meta);
     if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: meta.title,
@@ -220,18 +217,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const next = Math.max(0, Math.min((a.duration || 0), a.currentTime + offset));
       a.currentTime = next;
     };
-    // Native handlers (Capacitor) — punojnë në lock screen
-    setNativeHandlers({
-      play: () => audioRef.current?.play(),
-      pause: () => audioRef.current?.pause(),
-      stop: () => { const a = audioRef.current; if (a) { a.pause(); a.currentTime = 0; } },
-      previousTrack: () => doPrev(),
-      nextTrack: () => doNext(),
-      seekTo: (sec) => { if (audioRef.current) audioRef.current.currentTime = sec; },
-      seekForward: (off) => seekRel(off || 10),
-      seekBackward: (off) => seekRel(-(off || 10)),
-    });
-    // Web fallback
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
@@ -244,9 +229,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setMediaAction("seekbackward", (e) => seekRel(-(e.seekOffset ?? 10)));
     setMediaAction("seekto", (e) => {
       if (!audioRef.current || e.seekTime == null) return;
-      // Nese eshte fastSeek (drag), perdor fastSeek; perndryshe set direkt
       if (e.fastSeek && "fastSeek" in audioRef.current) {
-        (audioRef.current as any).fastSeek(e.seekTime);
+        (audioRef.current as HTMLAudioElement & { fastSeek: (time: number) => void }).fastSeek(e.seekTime);
       } else {
         audioRef.current.currentTime = e.seekTime;
       }
@@ -259,7 +243,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update playback position state (web + native) — sinkronizon scrubber-in
+  // Update playback position state — sinkronizon scrubber-in në lock screen kur sistemi e mbështet.
   useEffect(() => {
     if (!duration || !isFinite(duration)) return;
     if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
@@ -269,15 +253,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         });
       } catch {}
     }
-    const nativeState = isPlaying ? "playing" : "paused";
-    const position = Math.min(currentTime, duration);
-    const now = Date.now();
-    const last = nativeSyncRef.current;
-    if (last.state !== nativeState || Math.abs(last.position - position) >= 5 || now - last.at >= 5000) {
-      nativeSyncRef.current = { at: now, state: nativeState, position };
-      setNativePlaybackState(nativeState, position, duration, speed);
-    }
-  }, [currentTime, duration, speed, isPlaying]);
+  }, [currentTime, duration, speed]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;

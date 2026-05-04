@@ -13,11 +13,14 @@ interface PlayerState {
   reciterId: string;
   reciterName: string;
   isPlaying: boolean;
-  currentTime: number;
-  duration: number;
   loading: boolean;
   autoplay: boolean;
   speed: number;
+}
+
+interface PlayerProgress {
+  currentTime: number;
+  duration: number;
 }
 
 interface PlayerCtx extends PlayerState {
@@ -37,6 +40,7 @@ interface PlayerCtx extends PlayerState {
 }
 
 const Ctx = createContext<PlayerCtx | null>(null);
+const ProgressCtx = createContext<PlayerProgress | null>(null);
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,6 +56,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [speed, setSpeed] = useState(1);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const lastTimeUpdateRef = useRef(0);
 
   // Hydrate persisted state
   useEffect(() => {
@@ -78,7 +83,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = new Audio();
     a.preload = "auto";
     audioRef.current = a;
-    const onTime = () => setCurrentTime(a.currentTime);
+    const onTime = () => {
+      const next = Math.floor(a.currentTime);
+      if (next !== lastTimeUpdateRef.current) {
+        lastTimeUpdateRef.current = next;
+        setCurrentTime(a.currentTime);
+      }
+    };
     const onMeta = () => setDuration(a.duration || 0);
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);

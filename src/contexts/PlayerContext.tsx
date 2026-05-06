@@ -15,7 +15,7 @@ import { Capacitor } from "@capacitor/core";
 
 const IS_NATIVE = typeof window !== "undefined" && Capacitor.isNativePlatform();
 const HAS_MEDIA_SESSION =
-  !IS_NATIVE && HAS_MEDIA_SESSION;
+  !IS_NATIVE && typeof navigator !== "undefined" && "mediaSession" in navigator;
 
 interface HistoryEntry {
   surahNumber: number;

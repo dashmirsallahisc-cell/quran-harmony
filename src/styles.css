@@ -135,6 +135,7 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+    pointer-events: auto !important;
   }
   .font-arabic {
     font-family: 'Amiri', 'Scheherazade New', 'Traditional Arabic', serif;

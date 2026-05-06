@@ -11,6 +11,11 @@ import type { Surah } from "@/lib/quran-api";
 import { fullSurahAudioUrl } from "@/lib/quran-api";
 import { storageGet, storageSet } from "@/lib/storage";
 import { isDownloaded } from "@/lib/downloads";
+import { Capacitor } from "@capacitor/core";
+
+const IS_NATIVE = typeof window !== "undefined" && Capacitor.isNativePlatform();
+const HAS_MEDIA_SESSION =
+  !IS_NATIVE && typeof navigator !== "undefined" && "mediaSession" in navigator;
 
 interface HistoryEntry {
   surahNumber: number;

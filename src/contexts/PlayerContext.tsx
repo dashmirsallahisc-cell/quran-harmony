@@ -15,7 +15,7 @@ import { Capacitor } from "@capacitor/core";
 
 const IS_NATIVE = typeof window !== "undefined" && Capacitor.isNativePlatform();
 const HAS_MEDIA_SESSION =
-  !IS_NATIVE && typeof navigator !== "undefined" && "mediaSession" in navigator;
+  !IS_NATIVE && HAS_MEDIA_SESSION;
 
 interface HistoryEntry {
   surahNumber: number;
@@ -252,7 +252,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       artwork: "/icon-512.png",
       duration: dur,
     };
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+    if (HAS_MEDIA_SESSION) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: meta.title,
         artist: meta.artist,
@@ -272,7 +272,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const next = Math.max(0, Math.min(a.duration || 0, a.currentTime + offset));
       a.currentTime = next;
     };
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (!HAS_MEDIA_SESSION) return;
     const setMediaAction = (action: MediaSessionAction, handler: MediaSessionActionHandler) => {
       try {
         navigator.mediaSession.setActionHandler(action, handler);
@@ -319,7 +319,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Update playback position state — sinkronizon scrubber-in në lock screen kur sistemi e mbështet.
   useEffect(() => {
     if (!duration || !isFinite(duration)) return;
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+    if (HAS_MEDIA_SESSION) {
       try {
         navigator.mediaSession.setPositionState({
           duration,
@@ -333,7 +333,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [currentTime, duration, speed]);
 
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    if (!HAS_MEDIA_SESSION) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
 

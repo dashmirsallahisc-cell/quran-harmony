@@ -6,7 +6,9 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { downloadSurah, isDownloaded, removeDownload } from "@/lib/downloads";
 
-interface Props { surah: Surah; }
+interface Props {
+  surah: Surah;
+}
 
 export function SurahCard({ surah }: Props) {
   const player = usePlayer();
@@ -27,9 +29,15 @@ export function SurahCard({ surah }: Props) {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      await downloadSurah(surah.number, player.reciterId, fullSurahAudioUrl(player.reciterId, surah.number, 128));
+      await downloadSurah(
+        surah.number,
+        player.reciterId,
+        fullSurahAudioUrl(player.reciterId, surah.number, 128),
+      );
       setDownloaded(true);
-    } finally { setDownloading(false); }
+    } finally {
+      setDownloading(false);
+    }
   };
   const handleRemove = async () => {
     await removeDownload(surah.number, player.reciterId);
@@ -37,10 +45,18 @@ export function SurahCard({ surah }: Props) {
   };
 
   return (
-    <div className={`rounded-2xl border border-border/40 bg-surface/60 p-3 shadow-card transition-base ${isCurrent ? "border-gold/60 shadow-glow" : "hover:border-gold/30"}`}>
+    <div
+      className={`rounded-2xl border border-border/40 bg-surface/60 p-3 shadow-card transition-base ${isCurrent ? "border-gold/60 shadow-glow" : "hover:border-gold/30"}`}
+    >
       <div className="flex items-center gap-3">
         <div className="relative grid h-12 w-12 shrink-0 place-items-center">
-          <svg viewBox="0 0 48 48" className="absolute inset-0 h-12 w-12 text-gold" fill="none" stroke="currentColor" strokeWidth="1.2">
+          <svg
+            viewBox="0 0 48 48"
+            className="absolute inset-0 h-12 w-12 text-gold"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          >
             <path d="M24 2 L36 8 L46 24 L36 40 L24 46 L12 40 L2 24 L12 8 Z" />
           </svg>
           <span className="relative font-semibold text-gold text-sm">{surah.number}</span>
@@ -50,14 +66,20 @@ export function SurahCard({ surah }: Props) {
             <span className="truncate font-semibold text-foreground">{surah.englishName}</span>
             {isFav && <Heart className="h-3.5 w-3.5 fill-gold text-gold" />}
           </div>
-          <div className="text-xs text-muted-foreground">{surah.numberOfAyahs} {lang.ui.verses}</div>
+          <div className="text-xs text-muted-foreground">
+            {surah.numberOfAyahs} {lang.ui.verses}
+          </div>
         </div>
         <button
           aria-label={isPlaying ? "Pause" : "Play"}
-          onClick={() => isCurrent ? player.toggle() : player.play(surah)}
+          onClick={() => (isCurrent ? player.toggle() : player.play(surah))}
           className="grid h-10 w-10 place-items-center rounded-full border-2 border-gold text-gold transition-base hover:bg-gold hover:text-gold-foreground active:scale-90"
         >
-          {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
+          {isPlaying ? (
+            <Pause className="h-4 w-4 fill-current" />
+          ) : (
+            <Play className="h-4 w-4 fill-current ml-0.5" />
+          )}
         </button>
         <button
           aria-label="More"
@@ -73,13 +95,24 @@ export function SurahCard({ surah }: Props) {
       </div>
       {menuOpen && (
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/30 pt-3">
-          <button onClick={() => player.toggleFavorite(surah.number)} className="flex items-center justify-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm text-foreground">
+          <button
+            onClick={() => player.toggleFavorite(surah.number)}
+            className="flex items-center justify-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm text-foreground"
+          >
             <Heart className={`h-4 w-4 ${isFav ? "fill-gold text-gold" : ""}`} />
             {isFav ? lang.ui.remove : lang.ui.favorites}
           </button>
-          <button onClick={downloaded ? handleRemove : handleDownload} disabled={downloading} className="flex items-center justify-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm text-foreground disabled:opacity-60">
+          <button
+            onClick={downloaded ? handleRemove : handleDownload}
+            disabled={downloading}
+            className="flex items-center justify-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm text-foreground disabled:opacity-60"
+          >
             {downloaded ? <Trash2 className="h-4 w-4" /> : <DLIcon className="h-4 w-4" />}
-            {downloaded ? lang.ui.remove : downloading ? `${lang.ui.download}...` : lang.ui.download}
+            {downloaded
+              ? lang.ui.remove
+              : downloading
+                ? `${lang.ui.download}...`
+                : lang.ui.download}
           </button>
         </div>
       )}

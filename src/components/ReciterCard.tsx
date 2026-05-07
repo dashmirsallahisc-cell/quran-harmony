@@ -45,33 +45,33 @@ export function ReciterCard() {
               </button>
             </div>
             <div className="max-h-[68vh] overflow-y-auto p-3">
-          {isLoading && (
-            <div className="py-8 text-center text-muted-foreground">{lang.ui.loading}</div>
-          )}
-          <div className="flex flex-col gap-1">
-            {reciters.map((r) => (
-              <button
-                key={r.identifier}
-                onClick={() => {
-                  player.setReciter(r.identifier, r.englishName);
-                  setOpen(false);
-                }}
-                className={`flex items-center justify-between rounded-lg p-3 text-left transition-base hover:bg-muted/40 ${
-                  r.identifier === player.reciterId ? "bg-muted/60" : ""
-                }`}
-              >
-                <div>
-                  <div className="font-medium text-foreground">{r.englishName}</div>
-                  <div className="text-xs text-muted-foreground">{r.name}</div>
-                </div>
-                {r.identifier === player.reciterId && (
-                  <span className="text-xs font-semibold text-gold">●</span>
-                )}
-              </button>
-            ))}
-          </div>
+              {isLoading && (
+                <div className="py-8 text-center text-muted-foreground">{lang.ui.loading}</div>
+              )}
+              <div className="flex flex-col gap-1">
+                {reciters.map((r) => (
+                  <button
+                    key={r.identifier}
+                    onClick={() => {
+                      player.setReciter(r.identifier, r.englishName);
+                      setOpen(false);
+                    }}
+                    className={`flex items-center justify-between rounded-lg p-3 text-left transition-base hover:bg-muted/40 ${
+                      r.identifier === player.reciterId ? "bg-muted/60" : ""
+                    }`}
+                  >
+                    <div>
+                      <div className="font-medium text-foreground">{r.englishName}</div>
+                      <div className="text-xs text-muted-foreground">{r.name}</div>
+                    </div>
+                    {r.identifier === player.reciterId && (
+                      <span className="text-xs font-semibold text-gold">●</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-        </div>
+          </div>
         </div>
       )}
     </>

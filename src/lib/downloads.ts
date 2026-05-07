@@ -50,7 +50,8 @@ export async function downloadSurah(
         recursive: true,
       });
       const uri =
-        downloaded.path ?? (await Filesystem.getUri({ path: fileName, directory: Directory.Data })).uri;
+        downloaded.path ??
+        (await Filesystem.getUri({ path: fileName, directory: Directory.Data })).uri;
       localUri = Capacitor.convertFileSrc(uri);
       onProgress?.(100);
     } finally {

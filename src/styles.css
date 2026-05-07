@@ -129,13 +129,16 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  * { border-color: var(--color-border); -webkit-tap-highlight-color: transparent; }
+  html, body, #root { min-height: 100%; }
+  html, body { background-color: var(--color-background); color: var(--color-foreground); overflow: hidden; touch-action: manipulation; }
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     pointer-events: auto !important;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .font-arabic {
     font-family: 'Amiri', 'Scheherazade New', 'Traditional Arabic', serif;

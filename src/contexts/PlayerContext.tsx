@@ -97,7 +97,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const a = new Audio();
-    a.preload = "auto";
+    a.preload = IS_NATIVE ? "metadata" : "auto";
     audioRef.current = a;
     const onTime = () => {
       const next = Math.floor(a.currentTime);
@@ -159,7 +159,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       a.playbackRate = stateRef.current.speed;
       // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
       const onMetaOnce = () => {
-        updateMediaSession(s);
+        if (token === playTokenRef.current) updateMediaSession(s, activeReciterName);
         a.removeEventListener("loadedmetadata", onMetaOnce);
       };
       a.addEventListener("loadedmetadata", onMetaOnce);

@@ -49,7 +49,8 @@ export async function downloadSurah(
         progress: !!onProgress,
         recursive: true,
       });
-      const uri = downloaded.path ?? (await Filesystem.getUri({ path: fileName, directory: Directory.Data })).uri;
+      const uri =
+        downloaded.path ?? (await Filesystem.getUri({ path: fileName, directory: Directory.Data })).uri;
       localUri = Capacitor.convertFileSrc(uri);
       onProgress?.(100);
     } finally {
@@ -63,7 +64,12 @@ export async function downloadSurah(
   }
 
   const entry: DownloadEntry = {
-    surahNumber, reciterId, url, localUri, fileName, ts: Date.now(),
+    surahNumber,
+    reciterId,
+    url,
+    localUri,
+    fileName,
+    ts: Date.now(),
   };
   const all = await getDownloads();
   const filtered = all.filter((d) => !(d.surahNumber === surahNumber && d.reciterId === reciterId));
@@ -76,7 +82,14 @@ export async function removeDownload(surahNumber: number, reciterId: string) {
   const all = await getDownloads();
   const target = all.find((d) => d.surahNumber === surahNumber && d.reciterId === reciterId);
   if (target && Capacitor.isNativePlatform()) {
-    try { await Filesystem.deleteFile({ path: target.fileName, directory: Directory.Data }); } catch {}
+    try {
+      await Filesystem.deleteFile({ path: target.fileName, directory: Directory.Data });
+    } catch {
+      // File may already be gone; keep stored list in sync anyway.
+    }
   }
-  await storageSet(KEY, all.filter((d) => d !== target));
+  await storageSet(
+    KEY,
+    all.filter((d) => d !== target),
+  );
 }

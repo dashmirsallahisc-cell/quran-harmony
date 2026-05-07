@@ -72,6 +72,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const lastTimeUpdateRef = useRef(0);
+  const playTokenRef = useRef(0);
 
   // Hydrate persisted state
   useEffect(() => {
@@ -130,9 +131,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Use ref for stable handlers
-  const stateRef = useRef({ surah, surahs, reciterId, autoplay });
+  const stateRef = useRef({ surah, surahs, reciterId, reciterName, autoplay, speed, history });
   useEffect(() => {
-    stateRef.current = { surah, surahs, reciterId, autoplay };
+    stateRef.current = { surah, surahs, reciterId, reciterName, autoplay, speed, history };
   });
 
   const handleEnded = () => {
@@ -141,16 +142,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const playSurah = useCallback(
-    async (s: Surah) => {
+    async (s: Surah, requestedReciterId?: string, requestedReciterName?: string) => {
       const a = audioRef.current;
       if (!a) return;
+      const token = ++playTokenRef.current;
+      const activeReciterId = requestedReciterId ?? stateRef.current.reciterId;
+      const activeReciterName = requestedReciterName ?? stateRef.current.reciterName;
       setSurah(s);
       setLoading(true);
-      const src = fullSurahAudioUrl(reciterId, s.number, 128);
+      const src = fullSurahAudioUrl(activeReciterId, s.number, 128);
       a.pause();
       a.currentTime = 0;
       a.src = src;
-      a.playbackRate = speed;
+      a.playbackRate = stateRef.current.speed;
       // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
       const onMetaOnce = () => {
         updateMediaSession(s);
@@ -158,24 +162,30 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       };
       a.addEventListener("loadedmetadata", onMetaOnce);
       try {
-        const dl = await isDownloaded(s.number, reciterId).catch(() => null);
-        if (dl?.localUri) a.src = dl.localUri;
+        const dl = await isDownloaded(s.number, activeReciterId).catch(() => null);
+        if (token !== playTokenRef.current) return;
+        if (dl?.localUri) {
+          a.src = dl.localUri;
+          a.playbackRate = stateRef.current.speed;
+        }
         await a.play();
       } catch (e) {
         console.warn("play failed", e);
       } finally {
-        setLoading(false);
+        if (token === playTokenRef.current) setLoading(false);
       }
-      const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
+      const entry: HistoryEntry = { surahNumber: s.number, reciterId: activeReciterId, ts: Date.now() };
       const next = [
         entry,
-        ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId)),
+        ...stateRef.current.history.filter(
+          (h) => !(h.surahNumber === s.number && h.reciterId === activeReciterId),
+        ),
       ].slice(0, 50);
       setHistory(next);
       storageSet("quranpro:history", next);
-      updateMediaSession(s);
+      updateMediaSession(s, activeReciterName);
     },
-    [reciterId, speed, history],
+    [],
   ); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = useCallback(() => {

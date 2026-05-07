@@ -150,6 +150,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const activeReciterName = requestedReciterName ?? stateRef.current.reciterName;
       setSurah(s);
       setLoading(true);
+      setCurrentTime(0);
+      setDuration(0);
       const src = fullSurahAudioUrl(activeReciterId, s.number, 128);
       a.pause();
       a.currentTime = 0;
@@ -191,22 +193,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const toggle = useCallback(() => {
     const a = audioRef.current;
     if (!a || !surah) return;
-    if (a.paused) a.play();
+    if (a.paused) a.play().catch((e) => console.warn("toggle play failed", e));
     else a.pause();
   }, [surah]);
 
   const doNext = () => {
     const { surah: s, surahs: list } = stateRef.current;
-    if (!s) return;
+    if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const n = list[idx + 1] ?? list[0];
+    const n = idx >= 0 ? list[idx + 1] ?? list[0] : list[0];
     if (n) playSurah(n);
   };
   const doPrev = () => {
     const { surah: s, surahs: list } = stateRef.current;
-    if (!s) return;
+    if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const p = list[idx - 1] ?? list[list.length - 1];
+    const p = idx >= 0 ? list[idx - 1] ?? list[list.length - 1] : list[list.length - 1];
     if (p) playSurah(p);
   };
 
@@ -228,10 +230,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const cur = stateRef.current.surah;
     if (a && cur) {
       const wasPlaying = !a.paused;
-      const newSrc = fullSurahAudioUrl(id, cur.number, 128);
-      a.src = newSrc;
-      a.playbackRate = speed;
-      if (wasPlaying) a.play().catch((e) => console.warn("reciter switch play failed", e));
+      if (wasPlaying) {
+        playSurah(cur, id, name);
+      } else {
+        a.pause();
+        a.currentTime = 0;
+        a.src = fullSurahAudioUrl(id, cur.number, 128);
+        a.playbackRate = stateRef.current.speed;
+        setCurrentTime(0);
+        setDuration(0);
+      }
     }
   };
   const setAutoplayP = (v: boolean) => {

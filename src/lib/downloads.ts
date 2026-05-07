@@ -36,34 +36,25 @@ export async function downloadSurah(
   let localUri: string | undefined;
 
   if (Capacitor.isNativePlatform()) {
-    // Stream-fetch then write base64 to filesystem
-    const res = await fetch(url);
-    const reader = res.body?.getReader();
-    const total = Number(res.headers.get("content-length") || 0);
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          received += value.length;
-          if (total) onProgress?.(Math.round((received / total) * 100));
-        }
-      }
-    } else {
-      const buf = new Uint8Array(await res.arrayBuffer());
-      chunks.push(buf);
+    const listener = onProgress
+      ? await Filesystem.addListener("progress", ({ bytes, contentLength }) => {
+          if (contentLength > 0) onProgress(Math.round((bytes / contentLength) * 100));
+        })
+      : undefined;
+    try {
+      const downloaded = await Filesystem.downloadFile({
+        url,
+        path: fileName,
+        directory: Directory.Data,
+        progress: !!onProgress,
+        recursive: true,
+      });
+      const uri = downloaded.path ?? (await Filesystem.getUri({ path: fileName, directory: Directory.Data })).uri;
+      localUri = Capacitor.convertFileSrc(uri);
+      onProgress?.(100);
+    } finally {
+      await listener?.remove();
     }
-    const blob = new Blob(chunks as BlobPart[]);
-    const base64 = await blobToBase64(blob);
-    const written = await Filesystem.writeFile({
-      path: fileName,
-      data: base64,
-      directory: Directory.Data,
-    });
-    localUri = Capacitor.convertFileSrc(written.uri);
   } else {
     const res = await fetch(url);
     const blob = await res.blob();
@@ -88,16 +79,4 @@ export async function removeDownload(surahNumber: number, reciterId: string) {
     try { await Filesystem.deleteFile({ path: target.fileName, directory: Directory.Data }); } catch {}
   }
   await storageSet(KEY, all.filter((d) => d !== target));
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onloadend = () => {
-      const result = r.result as string;
-      resolve(result.split(",")[1]); // strip data:...;base64,
-    };
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
 }

@@ -176,7 +176,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (token === playTokenRef.current) setLoading(false);
       }
-      const entry: HistoryEntry = { surahNumber: s.number, reciterId: activeReciterId, ts: Date.now() };
+      const entry: HistoryEntry = {
+        surahNumber: s.number,
+        reciterId: activeReciterId,
+        ts: Date.now(),
+      };
       const next = [
         entry,
         ...stateRef.current.history.filter(
@@ -188,7 +192,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       updateMediaSession(s, activeReciterName);
     },
     [],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
@@ -201,14 +205,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const { surah: s, surahs: list } = stateRef.current;
     if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const n = idx >= 0 ? list[idx + 1] ?? list[0] : list[0];
+    const n = idx >= 0 ? (list[idx + 1] ?? list[0]) : list[0];
     if (n) playSurah(n);
   };
   const doPrev = () => {
     const { surah: s, surahs: list } = stateRef.current;
     if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const p = idx >= 0 ? list[idx - 1] ?? list[list.length - 1] : list[list.length - 1];
+    const p = idx >= 0 ? (list[idx - 1] ?? list[list.length - 1]) : list[list.length - 1];
     if (p) playSurah(p);
   };
 

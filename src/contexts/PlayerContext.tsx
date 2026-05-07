@@ -250,14 +250,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
-  const updateMediaSession = (s: Surah) => {
+  const updateMediaSession = (s: Surah, artistName = stateRef.current.reciterName) => {
     const dur =
       audioRef.current?.duration && isFinite(audioRef.current.duration)
         ? audioRef.current.duration
         : undefined;
     const meta = {
       title: `${s.englishName} — ${s.name}`,
-      artist: reciterName,
+      artist: artistName,
       album: "Quran Pro",
       artwork: "/icon-512.png",
       duration: dur,

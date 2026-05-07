@@ -72,6 +72,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const lastTimeUpdateRef = useRef(0);
+  const playTokenRef = useRef(0);
 
   // Hydrate persisted state
   useEffect(() => {
@@ -96,7 +97,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const a = new Audio();
-    a.preload = "auto";
+    a.preload = IS_NATIVE ? "metadata" : "auto";
     audioRef.current = a;
     const onTime = () => {
       const next = Math.floor(a.currentTime);
@@ -130,9 +131,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Use ref for stable handlers
-  const stateRef = useRef({ surah, surahs, reciterId, autoplay });
+  const stateRef = useRef({ surah, surahs, reciterId, reciterName, autoplay, speed, history });
   useEffect(() => {
-    stateRef.current = { surah, surahs, reciterId, autoplay };
+    stateRef.current = { surah, surahs, reciterId, reciterName, autoplay, speed, history };
   });
 
   const handleEnded = () => {
@@ -141,62 +142,77 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const playSurah = useCallback(
-    async (s: Surah) => {
+    async (s: Surah, requestedReciterId?: string, requestedReciterName?: string) => {
       const a = audioRef.current;
       if (!a) return;
+      const token = ++playTokenRef.current;
+      const activeReciterId = requestedReciterId ?? stateRef.current.reciterId;
+      const activeReciterName = requestedReciterName ?? stateRef.current.reciterName;
       setSurah(s);
       setLoading(true);
-      const src = fullSurahAudioUrl(reciterId, s.number, 128);
+      setCurrentTime(0);
+      setDuration(0);
+      const src = fullSurahAudioUrl(activeReciterId, s.number, 128);
       a.pause();
       a.currentTime = 0;
       a.src = src;
-      a.playbackRate = speed;
+      a.playbackRate = stateRef.current.speed;
       // Pasi metadata te ngarkohet, ridergo me duration ne lock screen
       const onMetaOnce = () => {
-        updateMediaSession(s);
+        if (token === playTokenRef.current) updateMediaSession(s, activeReciterName);
         a.removeEventListener("loadedmetadata", onMetaOnce);
       };
       a.addEventListener("loadedmetadata", onMetaOnce);
       try {
-        const dl = await isDownloaded(s.number, reciterId).catch(() => null);
-        if (dl?.localUri) a.src = dl.localUri;
+        const dl = await isDownloaded(s.number, activeReciterId).catch(() => null);
+        if (token !== playTokenRef.current) return;
+        if (dl?.localUri) {
+          a.src = dl.localUri;
+          a.playbackRate = stateRef.current.speed;
+        }
         await a.play();
       } catch (e) {
         console.warn("play failed", e);
       } finally {
-        setLoading(false);
+        if (token === playTokenRef.current) setLoading(false);
       }
-      const entry: HistoryEntry = { surahNumber: s.number, reciterId, ts: Date.now() };
+      const entry: HistoryEntry = {
+        surahNumber: s.number,
+        reciterId: activeReciterId,
+        ts: Date.now(),
+      };
       const next = [
         entry,
-        ...history.filter((h) => !(h.surahNumber === s.number && h.reciterId === reciterId)),
+        ...stateRef.current.history.filter(
+          (h) => !(h.surahNumber === s.number && h.reciterId === activeReciterId),
+        ),
       ].slice(0, 50);
       setHistory(next);
       storageSet("quranpro:history", next);
-      updateMediaSession(s);
+      updateMediaSession(s, activeReciterName);
     },
-    [reciterId, speed, history],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
     if (!a || !surah) return;
-    if (a.paused) a.play();
+    if (a.paused) a.play().catch((e) => console.warn("toggle play failed", e));
     else a.pause();
   }, [surah]);
 
   const doNext = () => {
     const { surah: s, surahs: list } = stateRef.current;
-    if (!s) return;
+    if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const n = list[idx + 1] ?? list[0];
+    const n = idx >= 0 ? (list[idx + 1] ?? list[0]) : list[0];
     if (n) playSurah(n);
   };
   const doPrev = () => {
     const { surah: s, surahs: list } = stateRef.current;
-    if (!s) return;
+    if (!s || list.length === 0) return;
     const idx = list.findIndex((x) => x.number === s.number);
-    const p = list[idx - 1] ?? list[list.length - 1];
+    const p = idx >= 0 ? (list[idx - 1] ?? list[list.length - 1]) : list[list.length - 1];
     if (p) playSurah(p);
   };
 
@@ -218,10 +234,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const cur = stateRef.current.surah;
     if (a && cur) {
       const wasPlaying = !a.paused;
-      const newSrc = fullSurahAudioUrl(id, cur.number, 128);
-      a.src = newSrc;
-      a.playbackRate = speed;
-      if (wasPlaying) a.play().catch((e) => console.warn("reciter switch play failed", e));
+      if (wasPlaying) {
+        playSurah(cur, id, name);
+      } else {
+        a.pause();
+        a.currentTime = 0;
+        a.src = fullSurahAudioUrl(id, cur.number, 128);
+        a.playbackRate = stateRef.current.speed;
+        setCurrentTime(0);
+        setDuration(0);
+      }
     }
   };
   const setAutoplayP = (v: boolean) => {
@@ -240,14 +262,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ---- MediaSession (lock-screen controls + background metadata) ----
-  const updateMediaSession = (s: Surah) => {
+  const updateMediaSession = (s: Surah, artistName = stateRef.current.reciterName) => {
     const dur =
       audioRef.current?.duration && isFinite(audioRef.current.duration)
         ? audioRef.current.duration
         : undefined;
     const meta = {
       title: `${s.englishName} — ${s.name}`,
-      artist: reciterName,
+      artist: artistName,
       album: "Quran Pro",
       artwork: "/icon-512.png",
       duration: dur,

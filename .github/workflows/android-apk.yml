@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "Build variant"
+        type: choice
+        options: [dev, release]
+        default: dev
+      bump:
+        description: "Version bump (none/patch/minor/major)"
+        type: choice
+        options: [none, patch, minor, major]
+        default: none
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Bump version
+        if: ${{ github.event.inputs.bump != '' && github.event.inputs.bump != 'none' }}
+        run: node scripts/bump-version.mjs ${{ github.event.inputs.bump }}
+
+      - name: Add Android platform if missing
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+      - name: Build APK
+        run: node scripts/build-apk.mjs ${{ github.event.inputs.variant || 'release' }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranpro-apk
+          path: dist-apk/*.apk
+          if-no-files-found: error
